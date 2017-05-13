@@ -35,6 +35,8 @@ public class LocatorFragment extends Fragment implements LocationListener {
     private TextView positionView;
     private TextView addressView;
 
+    boolean requested = false;
+
     private static final String[] PERMISSIONS = new String[] {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -72,7 +74,8 @@ public class LocatorFragment extends Fragment implements LocationListener {
         }
 
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
+                != PackageManager.PERMISSION_GRANTED && requested) {
+            requested = true;
             ActivityCompat.requestPermissions(getActivity(), PERMISSIONS, 42);
             return;
         }
