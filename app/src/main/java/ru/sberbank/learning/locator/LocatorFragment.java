@@ -76,7 +76,7 @@ public class LocatorFragment extends Fragment implements LocationListener {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED && !requested) {
             requested = true;
-            ActivityCompat.requestPermissions(getActivity(), PERMISSIONS, 70000);
+            requestPermissions(PERMISSIONS, 42);
             return;
         }
 
