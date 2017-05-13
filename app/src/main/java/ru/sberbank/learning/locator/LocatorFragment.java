@@ -3,9 +3,12 @@ package ru.sberbank.learning.locator;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -18,6 +21,10 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
+
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.List;
 
 /**
  * Created by user10 on 13.05.2017.
@@ -76,6 +83,13 @@ public class LocatorFragment extends Fragment implements LocationListener {
     }
 
     private void stopListening() {
+        LocationManager lm = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+
+        if (lm == null) {
+            return;
+        }
+
+        lm.removeUpdates(this);
 
     }
 
@@ -84,6 +98,8 @@ public class LocatorFragment extends Fragment implements LocationListener {
         positionView.setText(getString(R.string.location_format,
                 location.getLatitude(),
                 location.getLongitude()));
+        GeocodeTask task = new GeocodeTask(this, location);
+        task.execute();
     }
 
     @Override
@@ -106,5 +122,66 @@ public class LocatorFragment extends Fragment implements LocationListener {
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startListening();
         }
+    }
+
+
+    private static class GeocodeTask extends AsyncTask<Void, Void, String> {
+
+        private WeakReference<LocatorFragment> fragmentRef = new WeakReference<LocatorFragment>(null);
+        private Location location;
+        private Context context;
+
+        public GeocodeTask(LocatorFragment fragment, Location location) {
+            fragmentRef = new WeakReference<LocatorFragment>(fragment);
+            this.location = location;
+            context = fragment.getContext().getApplicationContext();
+        }
+
+        @Override
+        protected String doInBackground(Void... params) {
+            if (Geocoder.isPresent()) {
+                Geocoder geocoder = new Geocoder(context);
+                try {
+                    List<Address> result =
+                            geocoder.getFromLocation(
+                                    location.getLatitude(),
+                                    location.getLongitude(),
+                                    1);
+                    if (result.size() > 0) {
+                        StringBuilder address = new StringBuilder();
+                        for (int i = 0; i < result.get(0).getMaxAddressLineIndex(); i++) {
+                            String line = result.get(0).getAddressLine(i);
+
+                            if (line != null) {
+                                address.append(line).append(" ");
+                            }
+                            return address.toString();
+                        }
+                    }
+
+
+                } catch (IOException e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            LocatorFragment fragment = fragmentRef.get();
+
+            if (fragment != null) {
+                fragment.setAddress(s);
+            }
+        }
+    }
+
+    private void setAddress(String s) {
+        if (s == null) {
+            addressView.setText(R.string.location_not_found);
+        }
+
+        addressView.setText(s);
     }
 }
